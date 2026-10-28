@@ -66,3 +66,8 @@ The APK output is `WatchTrack-Android/app/build/outputs/apk/debug/app-debug.apk`
 - Never include a real token or private watch history in screenshots. The token is sent directly to TMDB for API requests.
 - For a production public deployment, put private credentials behind a backend/proxy rather than exposing them in frontend code.
 - WatchTrack uses the TMDB API but is **not endorsed or certified by TMDB**. Streaming availability data is supplied by JustWatch via TMDB.
+
+
+## Development standards
+
+Contributions and future UI work follow the project rules in [`AGENTS.md`](AGENTS.md) and [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md). These link to and distill the requested [Apple Design Skill](https://github.com/dickwu/apple-design-skill) and [Emil Kowalski's design-engineering skills](https://github.com/emilkowalski/skills). The rules cover accessibility, responsive behavior, mobile WebView details, purposeful and performant motion, edge-case testing, and release hygiene.

@@ -180,13 +180,15 @@ jobs:
       - name: Package source bundle with documentation
         run: |
           rm -rf source-bundle
-          mkdir -p source-bundle/android
+          mkdir -p source-bundle/android source-bundle/docs
           cp -R web source-bundle/web
           cp -R WatchTrack-Android source-bundle/android/WatchTrack-Android
+          cp AGENTS.md source-bundle/AGENTS.md
+          cp docs/ENGINEERING_STANDARDS.md source-bundle/docs/ENGINEERING_STANDARDS.md
           cat > source-bundle/README.md <<'MD'
           # WatchTrack Source Bundle
           
-          Includes the website in `web/` and the Android WebView project in `android/WatchTrack-Android/`. Each component has its own README.
+          Includes the website in `web/`, the Android WebView project in `android/WatchTrack-Android/`, and the project coding/design standards in `AGENTS.md` and `docs/ENGINEERING_STANDARDS.md`. Each component has its own README.
           
           Run the website with `python -m http.server 8000 --directory web`. Enter your own TMDB API Read Access Token in **TMDB Setup**.
           
@@ -195,7 +197,7 @@ jobs:
           Never commit your TMDB token. This product uses the TMDB API but is not endorsed or certified by TMDB.
           MD
           rm -f WatchTrack-Source.zip
-          (cd source-bundle && zip -qr ../WatchTrack-Source.zip README.md web android/WatchTrack-Android)
+          (cd source-bundle && zip -qr ../WatchTrack-Source.zip README.md AGENTS.md docs/ENGINEERING_STANDARDS.md web android/WatchTrack-Android)
           unzip -t WatchTrack-Source.zip
 
       - name: Commit updated source, screenshots, archive, and APK
