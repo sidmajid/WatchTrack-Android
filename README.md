@@ -8,18 +8,6 @@ WatchTrack is a responsive movie and TV-show tracker built with HTML, CSS, and J
 
 The GitHub Actions workflow generates screenshots of the app interface and stores them under `docs/screenshots/`. Use demo data for screenshots so no TMDB token or personal watch history is exposed.
 
-### Home dashboard
-![WatchTrack home dashboard](docs/screenshots/home.png)
-
-### Profile and watched libraries
-![WatchTrack profile](docs/screenshots/profile.png)
-
-### Search and discovery
-![WatchTrack search](docs/screenshots/search.png)
-
-### Mobile layout
-![WatchTrack mobile layout](docs/screenshots/mobile-home.png)
-
 ## Features
 
 - Home dashboard with Continue Watching, movie wishlist, and tracking statistics.
