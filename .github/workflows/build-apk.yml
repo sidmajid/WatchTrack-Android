@@ -1,59 +1,10 @@
-name: Build WatchTrack APK
+name: WatchTrack source bootstrap
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
-  build:
+  placeholder:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Prepare Android SDK
-        shell: bash
-        run: |
-          ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
-          fi
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Reconstruct WatchTrack source
-        run: |
-          cat source/chunk_*.b64 > WatchTrack-Android-Source.zip.b64
-          base64 --decode WatchTrack-Android-Source.zip.b64 > WatchTrack-Android-Source.zip
-          unzip -t WatchTrack-Android-Source.zip
-          rm -rf build-src
-          mkdir -p build-src
-          unzip -q WatchTrack-Android-Source.zip -d build-src
-
-      - name: Build debug APK
-        working-directory: build-src/WatchTrack-Android
-        run: gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WatchTrack-debug-apk
-          path: build-src/WatchTrack-Android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - run: echo "Workflow will be replaced with the complete source, screenshot, and APK build pipeline in the next commit."
