@@ -1,10 +1,199 @@
-name: WatchTrack source bootstrap
+name: Build WatchTrack source, screenshots, and APK
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  placeholder:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Workflow will be replaced with the complete source, screenshot, and APK build pipeline in the next commit."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"; fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Reconstruct source archive
+        run: |
+          cat source/chunk_*.b64 > /tmp/source.zip.b64
+          base64 --decode /tmp/source.zip.b64 > /tmp/source.zip
+          unzip -t /tmp/source.zip
+          rm -rf build-src
+          mkdir build-src
+          unzip -q /tmp/source.zip -d build-src
+          mkdir -p web WatchTrack-Android
+          cp -R build-src/WatchTrack-Android/. WatchTrack-Android/
+          cp WatchTrack-Android/app/src/main/assets/www/* web/
+          mkdir -p WatchTrack-Android/app/src/main/assets/www
+
+      - name: Add latest motion system and keep web and Android assets synchronized
+        shell: bash
+        run: |
+          cat >> web/styles.css <<'CSS'
+
+          /* WatchTrack motion system: ease-out entrances, ease-in exits, subtle spring feedback. */
+          :root {
+            --motion-enter: cubic-bezier(.16,1,.3,1);
+            --motion-exit: cubic-bezier(.55,0,1,.45);
+            --motion-spring: cubic-bezier(.34,1.24,.64,1);
+          }
+          @keyframes wt-page-enter {
+            0% { opacity: 0; transform: translateY(12px); }
+            76% { opacity: 1; transform: translateY(-1px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes wt-card-enter {
+            0% { opacity: 0; transform: translateY(10px) scale(.985); }
+            76% { opacity: 1; transform: translateY(-1px) scale(1.002); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          main.shell { animation: wt-page-enter 560ms var(--motion-enter) both; }
+          .topbar { animation: wt-page-enter 440ms var(--motion-enter) both; }
+          .card, .clickable-card, .clickable-row {
+            transition: transform 340ms var(--motion-spring), border-color 240ms var(--motion-enter),
+              box-shadow 340ms var(--motion-enter), background-color 240ms var(--motion-enter);
+          }
+          .btn, .nav-button, .chip, .nav-links a, .modal-close, .season-summary {
+            transition: transform 320ms var(--motion-spring), background-color 240ms var(--motion-enter),
+              border-color 240ms var(--motion-enter), color 200ms var(--motion-enter),
+              box-shadow 300ms var(--motion-enter);
+          }
+          .btn:active, .nav-button:active, .chip:active, .modal-close:active {
+            transform: scale(.975);
+            transition-timing-function: var(--motion-exit);
+          }
+          .grid .card { animation: wt-card-enter 440ms var(--motion-enter) both; }
+          .grid .card:nth-child(2) { animation-delay: 50ms; }
+          .grid .card:nth-child(3) { animation-delay: 100ms; }
+          .grid .card:nth-child(4) { animation-delay: 150ms; }
+          @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+              animation-duration: .01ms !important;
+              animation-iteration-count: 1 !important;
+              scroll-behavior: auto !important;
+              transition-duration: .01ms !important;
+            }
+          }
+          CSS
+          cp web/* WatchTrack-Android/app/src/main/assets/www/
+          diff -qr web WatchTrack-Android/app/src/main/assets/www/
+
+      - name: Add readable Android README
+        run: |
+          cat > WatchTrack-Android/README.md <<'MD'
+          # WatchTrack Android
+          
+          Android WebView wrapper for WatchTrack. Website files are bundled in `app/src/main/assets/www/`.
+          
+          ## Build
+          Requirements: Java 17, Android SDK platform 35, Gradle 8.9.
+          
+          ```bash
+          gradle assembleDebug
+          ```
+          
+          Output: `app/build/outputs/apk/debug/app-debug.apk`.
+          
+          ## First launch
+          Open **TMDB Setup**, enter your own TMDB API Read Access Token, set a 2-letter provider country code such as `IN`, and save. No API token should be bundled with the app. Token and tracking data use the app's local WebView storage.
+          
+          This product uses the TMDB API but is not endorsed or certified by TMDB. Streaming availability is supplied by JustWatch via TMDB.
+          MD
+          cat > web/README.md <<'MD'
+          # WatchTrack Website
+          
+          Responsive HTML, CSS, and JavaScript movie/TV tracker. Start a local server from the repository root:
+          
+          ```bash
+          python -m http.server 8000 --directory web
+          ```
+          
+          Open http://localhost:8000, choose **TMDB Setup**, and enter your own TMDB API Read Access Token. Tracking data and the token are saved in browser local storage. Do not commit your token. The site uses TMDB but is not endorsed or certified by TMDB.
+          MD
+
+      - name: Build APK
+        run: |
+          gradle --version || true
+          cd WatchTrack-Android
+          gradle assembleDebug
+          cd ..
+          mkdir -p release
+          cp WatchTrack-Android/app/build/outputs/apk/debug/app-debug.apk release/WatchTrack-debug.apk
+
+      - name: Install browser for screenshot generation
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+
+      - name: Capture actual app screenshots
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory web >/tmp/watchtrack-server.log 2>&1 &
+          for n in {1..30}; do curl -fsS http://127.0.0.1:4173/index.html >/dev/null && break; sleep 1; done
+          mkdir -p docs/screenshots
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          try {
+            for (const [name, path, viewport] of [
+              ['home', 'index.html', { width: 1440, height: 1000 }],
+              ['profile', 'profile.html', { width: 1440, height: 1000 }],
+              ['search', 'search.html', { width: 1440, height: 1000 }],
+              ['mobile-home', 'index.html', { width: 390, height: 844 }]
+            ]) {
+              const page = await browser.newPage({ viewport });
+              await page.goto('http://127.0.0.1:4173/' + path, { waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(700);
+              await page.screenshot({ path: 'docs/screenshots/' + name + '.png', fullPage: true });
+              await page.close();
+            }
+          } finally { await browser.close(); }
+          JS
+
+      - name: Package source bundle with documentation
+        run: |
+          rm -rf source-bundle
+          mkdir -p source-bundle/android
+          cp -R web source-bundle/web
+          cp -R WatchTrack-Android source-bundle/android/WatchTrack-Android
+          cat > source-bundle/README.md <<'MD'
+          # WatchTrack Source Bundle
+          
+          Includes the website in `web/` and the Android WebView project in `android/WatchTrack-Android/`. Each component has its own README.
+          
+          Run the website with `python -m http.server 8000 --directory web`. Enter your own TMDB API Read Access Token in **TMDB Setup**.
+          
+          Build Android with Java 17, Android SDK platform 35, and Gradle 8.9: `cd android/WatchTrack-Android && gradle assembleDebug`.
+          
+          Never commit your TMDB token. This product uses the TMDB API but is not endorsed or certified by TMDB.
+          MD
+          rm -f WatchTrack-Source.zip
+          (cd source-bundle && zip -qr ../WatchTrack-Source.zip README.md web android/WatchTrack-Android)
+          unzip -t WatchTrack-Source.zip
+
+      - name: Commit updated source, screenshots, archive, and APK
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md web WatchTrack-Android docs/screenshots release/WatchTrack-debug.apk WatchTrack-Source.zip
+          git add .github/workflows/build-apk.yml
+          if git diff --cached --quiet; then echo "No changes to publish."; else git commit -m "Publish updated WatchTrack source, screenshots, and APK"; git push; fi
