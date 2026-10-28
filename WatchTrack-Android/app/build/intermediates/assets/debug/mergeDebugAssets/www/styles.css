@@ -241,3 +241,11 @@ html{color-scheme:dark;-webkit-tap-highlight-color:transparent}body{background:v
 @media(max-width:380px){.nav{padding-right:12px;padding-left:12px}.brand-word{font-size:.96rem}.nav-button{width:42px;height:42px}.shell{padding-right:12px;padding-left:12px}.hero-copy{padding:26px 18px}.hero-copy h1{font-size:clamp(2.45rem,10vw,3.2rem)}.hero-actions .btn{padding-right:12px;padding-left:12px;font-size:.82rem}.section-link{gap:4px;font-size:.72rem}.card-body{padding:8px}.card .actions .btn{font-size:.69rem}.stats .stat strong{font-size:1.38rem}.stats .stat.time-stat strong{font-size:.92rem}.search-hero{padding-right:15px;padding-left:15px}.modal-head{grid-template-columns:82px minmax(0,1fr);gap:11px;padding:15px}.modal-head img{width:82px}.modal h2{font-size:1.38rem}.modal-content{padding-right:12px;padding-left:12px}}
 @media(prefers-contrast:more){:root{--line:rgba(255,255,255,.24);--line-strong:rgba(255,255,255,.4);--muted:#C1C7CC}.btn,.nav-button,.chip,.searchbox input,.settings-content textarea,.region-setting input{border-width:2px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card,.poster img,.btn,.nav-links a{transition-duration:.01ms!important}.modal-backdrop,.modal{transition-duration:.01ms!important}.card:hover,.clickable-card:hover,.clickable-row:hover,.btn:active,.modal-backdrop.show .modal{transform:none!important}.season-chevron{animation:none!important;transition:none!important}}
+
+
+/* Fixed bottom navigation must not inherit a fixed-position containing block from backdrop-filter. */
+@media (max-width:680px) {
+  .topbar { -webkit-backdrop-filter:none; backdrop-filter:none; background:rgba(11,14,20,.96); }
+  .stat:nth-child(2n+1) { border-right:1px solid var(--line); }
+  .stat:nth-child(2n) { border-right:0; }
+}
