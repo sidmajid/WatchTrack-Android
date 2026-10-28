@@ -35,9 +35,9 @@ public class MainActivity extends Activity {
         settings.setDatabaseEnabled(true);
         settings.setLoadsImagesAutomatically(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setBuiltInZoomControls(false);
+        settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
-        settings.setSupportZoom(false);
+        settings.setSupportZoom(true);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setUserAgentString(settings.getUserAgentString() + " WatchTrackAndroid/1.0");

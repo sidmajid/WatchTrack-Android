@@ -50,60 +50,20 @@ jobs:
           unzip -q /tmp/source.zip -d build-src
           mkdir -p web WatchTrack-Android
           cp -R build-src/WatchTrack-Android/. WatchTrack-Android/
-          cp WatchTrack-Android/app/src/main/assets/www/* web/
+          # web/ is the canonical website source.
           mkdir -p WatchTrack-Android/app/src/main/assets/www
 
-      - name: Add latest motion system and keep web and Android assets synchronized
+      - name: Apply native WebView accessibility theme
         shell: bash
         run: |
-          cat >> web/styles.css <<'CSS'
-
-          /* WatchTrack motion system: ease-out entrances, ease-in exits, subtle spring feedback. */
-          :root {
-            --motion-enter: cubic-bezier(.16,1,.3,1);
-            --motion-exit: cubic-bezier(.55,0,1,.45);
-            --motion-spring: cubic-bezier(.34,1.24,.64,1);
-          }
-          @keyframes wt-page-enter {
-            0% { opacity: 0; transform: translateY(12px); }
-            76% { opacity: 1; transform: translateY(-1px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes wt-card-enter {
-            0% { opacity: 0; transform: translateY(10px) scale(.985); }
-            76% { opacity: 1; transform: translateY(-1px) scale(1.002); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          main.shell { animation: wt-page-enter 560ms var(--motion-enter) both; }
-          .topbar { animation: wt-page-enter 440ms var(--motion-enter) both; }
-          .card, .clickable-card, .clickable-row {
-            transition: transform 340ms var(--motion-spring), border-color 240ms var(--motion-enter),
-              box-shadow 340ms var(--motion-enter), background-color 240ms var(--motion-enter);
-          }
-          .btn, .nav-button, .chip, .nav-links a, .modal-close, .season-summary {
-            transition: transform 320ms var(--motion-spring), background-color 240ms var(--motion-enter),
-              border-color 240ms var(--motion-enter), color 200ms var(--motion-enter),
-              box-shadow 300ms var(--motion-enter);
-          }
-          .btn:active, .nav-button:active, .chip:active, .modal-close:active {
-            transform: scale(.975);
-            transition-timing-function: var(--motion-exit);
-          }
-          .grid .card { animation: wt-card-enter 440ms var(--motion-enter) both; }
-          .grid .card:nth-child(2) { animation-delay: 50ms; }
-          .grid .card:nth-child(3) { animation-delay: 100ms; }
-          .grid .card:nth-child(4) { animation-delay: 150ms; }
-          @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-              animation-duration: .01ms !important;
-              animation-iteration-count: 1 !important;
-              scroll-behavior: auto !important;
-              transition-duration: .01ms !important;
-            }
-          }
-          CSS
-          cp web/* WatchTrack-Android/app/src/main/assets/www/
-          diff -qr web WatchTrack-Android/app/src/main/assets/www/
+          python3 - <<'PY'
+          from pathlib import Path
+          activity = Path("WatchTrack-Android/app/src/main/java/com/watchtrack/app/MainActivity.java")
+          source = activity.read_text().replace("settings.setBuiltInZoomControls(false);", "settings.setBuiltInZoomControls(true);").replace("settings.setSupportZoom(false);", "settings.setSupportZoom(true);")
+          activity.write_text(source)
+          theme = Path("WatchTrack-Android/app/src/main/res/values/styles.xml")
+          theme.write_text(theme.read_text().replace("#7C5CFF", "#C9F36A"))
+          PY
 
       - name: Add readable Android README
         run: |
@@ -137,6 +97,13 @@ jobs:
           
           Open http://localhost:8000, choose **TMDB Setup**, and enter your own TMDB API Read Access Token. Tracking data and the token are saved in browser local storage. Do not commit your token. The site uses TMDB but is not endorsed or certified by TMDB.
           MD
+
+      - name: Synchronize website and Android assets
+        shell: bash
+        run: |
+          mkdir -p WatchTrack-Android/app/src/main/assets/www
+          cp web/* WatchTrack-Android/app/src/main/assets/www/
+          diff -qr web WatchTrack-Android/app/src/main/assets/www/
 
       - name: Build APK
         run: |

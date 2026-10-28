@@ -10,12 +10,14 @@ The GitHub Actions workflow generates screenshots of the app interface and store
 
 ## Features
 
+- A considered visual system with system typography, restrained chartreuse accents, clear hierarchy, and layouts tuned for desktop and phone screens.
+
 - Home dashboard with Continue Watching, movie wishlist, and tracking statistics.
 - Separate watched movie and TV libraries with full-library views.
 - Episode-level tracking, season accordions, and a confirmation prompt when marking earlier episodes watched.
 - Separate movie and TV watch-time totals.
 - TMDB-powered search, title details, cast and crew, and streaming-provider availability by country.
-- Animated interface transitions, including ease-out entrances, ease-in exits, and subtle spring-like interactions; reduced-motion preferences are respected.
+- A focused cinematic interface with responsive mobile navigation, accessible controls, reduced-motion support, and lightweight interaction feedback.
 - Local browser or Android WebView storage for tracking state. Browser data and Android-app data are separate.
 
 ## Run the website
