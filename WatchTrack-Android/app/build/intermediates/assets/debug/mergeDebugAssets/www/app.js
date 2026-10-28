@@ -8,7 +8,7 @@ const STATE_KEY = 'watchtrack-state-v2';
 const LEGACY_STATE_KEY = 'watchtrack-state';
 const CACHE_PREFIX = 'watchtrack-tmdb-cache:';
 const CACHE_TTL = 6 * 60 * 60 * 1000;
-const PLACEHOLDER_POSTER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" viewBox="0 0 500 750"><rect width="500" height="750" fill="#171d2a"/><circle cx="250" cy="320" r="70" fill="#252d3d"/><path d="M216 275l94 45-94 45z" fill="#7c5cff"/><text x="250" y="445" fill="#9ca6b7" font-family="Arial,sans-serif" text-anchor="middle" font-size="26">No poster</text></svg>`);
+const PLACEHOLDER_POSTER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" viewBox="0 0 500 750"><rect width="500" height="750" fill="#171d2a"/><circle cx="250" cy="320" r="70" fill="#252d3d"/><path d="M216 275l94 45-94 45z" fill="#C9F36A"/><text x="250" y="445" fill="#9ca6b7" font-family="Arial,sans-serif" text-anchor="middle" font-size="26">No poster</text></svg>`);
 
 const legacyIdMap = {
   'movie-arrival': 329865,
@@ -112,7 +112,19 @@ function showError(el, msg){ if(el) el.innerHTML = `<div class="empty error-box"
 
 function nav(){
   const p=location.pathname.split('/').pop()||'index.html';
-  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')===p));
+  document.querySelectorAll('.nav-links a').forEach(a=>{
+    const active=a.getAttribute('href')===p;
+    a.classList.toggle('active',active);
+    if(active) a.setAttribute('aria-current','page');
+    else a.removeAttribute('aria-current');
+  });
+}
+function handleImageFallbacks(){
+  document.addEventListener('error',event=>{
+    const image=event.target;
+    if(!(image instanceof HTMLImageElement)||image.dataset.fallback==='true')return;
+    if(image.closest('.poster,.collection-item,.history-item,.modal-head')){image.dataset.fallback='true';image.src=PLACEHOLDER_POSTER;}
+  },true);
 }
 
 function cacheGet(key){
@@ -408,7 +420,7 @@ async function initHome(){
   if(!hasToken()){
     [watching,wishlist].forEach(requireTokenMessage);
     updateStats([]);
-    setTimeout(openSettings,120);
+    
     return;
   }
   setLoading(watching); setLoading(wishlist);
@@ -556,7 +568,7 @@ async function initProfile(){
     requireTokenMessage(movieList || list);
     if(tvList) tvList.innerHTML='<div class="empty compact-empty">Connect TMDB to load watched TV shows.</div>';
     if(list) list.innerHTML='<div class="empty compact-empty">Connect TMDB to load watch history.</div>';
-    setTimeout(openSettings,120);
+    
     return;
   }
   setLoading(movieList,'Loading watched movies from TMDB…');
@@ -634,11 +646,11 @@ let searchTimer=null;
 function initSearch(){
   const input=document.getElementById('searchInput');
   document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
-    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active'); currentFilter=c.dataset.filter; renderSearch();
+    document.querySelectorAll('.chip').forEach(x=>{const active=x===c;x.classList.toggle('active',active);x.setAttribute('aria-pressed',String(active));});
+    currentFilter=c.dataset.filter; renderSearch();
   }));
   input?.addEventListener('input',()=>{ clearTimeout(searchTimer); searchTimer=setTimeout(renderSearch,320); });
-  if(!hasToken()){ requireTokenMessage(document.getElementById('resultsGrid')); setTimeout(openSettings,120); return; }
+  if(!hasToken()){ requireTokenMessage(document.getElementById('resultsGrid'));  return; }
   renderSearch();
 }
 
@@ -675,7 +687,7 @@ async function openDetails(type,id){
       if(syncMovieRuntime(id,item.runtime)){ saveState(); renderWatchTimeStats(); }
       const watched=movieWatched(id), directors=movieDirectors(item), cast=topCast(item,false);
       const bg=backdropUrl(item.backdrop_path);
-      body.innerHTML=`<div class="modal-hero" ${bg?`style="background-image:linear-gradient(90deg,#101520 15%,rgba(16,21,32,.86),rgba(16,21,32,.35)),url('${bg}')"`:''}><div class="modal-head"><img src="${posterUrl(item.poster_path)}" alt="${esc(item.title)} poster"><div><div class="eyebrow">Movie</div><h2>${esc(item.title)}</h2><div class="meta">${yearFrom(item.release_date)} · ${esc(certificationMovie(item))} · ${(item.genres||[]).map(g=>esc(g.name)).join(' · ')}</div><p>${esc(item.overview||'No overview available.')}</p><p><strong>Cast:</strong> ${cast.length?esc(cast.join(', ')):'Not available'}</p></div></div></div><div class="modal-content"><div class="info-grid"><div class="info-box"><small>Runtime</small>${runtimeLabel(item.runtime)}</div><div class="info-box"><small>Director${directors.length===1?'':'s'}</small>${directors.length?esc(directors.join(', ')):'Not available'}</div><div class="info-box"><small>Your status</small>${watched?`Watched ${formatWatchedAt(watched.watchedAt)}`:'Not watched'}</div></div>${providerSection(providers)}<div class="actions"><button class="btn ${watched?'success':''}" onclick="toggleMovieWatched(${id},true,${Number(item.runtime)||0})">${watched?'Remove watched status':'Mark watched'}</button><button class="btn ${isWishlisted(id)?'primary':''}" onclick="toggleWishlist(${id},true)">${isWishlisted(id)?'Remove from wishlist':'Add to wishlist'}</button></div></div>`;
+      body.innerHTML=`<div class="modal-hero" ${bg?`style="background-image:linear-gradient(90deg,#11151A 15%,rgba(17,21,26,.88),rgba(17,21,26,.38)),url('${bg}')"`:''}><div class="modal-head"><img src="${posterUrl(item.poster_path)}" alt="${esc(item.title)} poster"><div><div class="eyebrow">Movie</div><h2>${esc(item.title)}</h2><div class="meta">${yearFrom(item.release_date)} · ${esc(certificationMovie(item))} · ${(item.genres||[]).map(g=>esc(g.name)).join(' · ')}</div><p>${esc(item.overview||'No overview available.')}</p><p><strong>Cast:</strong> ${cast.length?esc(cast.join(', ')):'Not available'}</p></div></div></div><div class="modal-content"><div class="info-grid"><div class="info-box"><small>Runtime</small>${runtimeLabel(item.runtime)}</div><div class="info-box"><small>Director${directors.length===1?'':'s'}</small>${directors.length?esc(directors.join(', ')):'Not available'}</div><div class="info-box"><small>Your status</small>${watched?`Watched ${formatWatchedAt(watched.watchedAt)}`:'Not watched'}</div></div>${providerSection(providers)}<div class="actions"><button class="btn ${watched?'success':''}" onclick="toggleMovieWatched(${id},true,${Number(item.runtime)||0})">${watched?'Remove watched status':'Mark watched'}</button><button class="btn ${isWishlisted(id)?'primary':''}" onclick="toggleWishlist(${id},true)">${isWishlisted(id)?'Remove from wishlist':'Add to wishlist'}</button></div></div>`;
     }else{
       const [item,providers]=await Promise.all([loadTvBundle(id),loadWatchProviders('tv',id).catch(()=>null)]);
       if(syncTvRuntimes(item)){ saveState(); renderWatchTimeStats(); }
@@ -693,7 +705,7 @@ async function openDetails(type,id){
           return `<div class="episode"><div class="epno">S${ep.season_number}E${ep.episode_number}</div><div><strong>${esc(ep.name||'Untitled episode')}</strong><div class="meta">${ep.air_date?`Aired ${formatDate(ep.air_date)}`:'Air date unavailable'}</div></div><div><div class="runtime">${runtimeLabel(mins)}</div><button class="btn ${seen?'success':''}" ${future?'disabled title="This episode has not aired yet"':''} onclick="toggleEpisode(${id},'${key}',true,${mins})">${seen?'Watched ✓':future?'Not released':'Mark watched'}</button></div></div>`;
         }).join('')}</div></div></div></section>`;
       }).join('');
-      body.innerHTML=`<div class="modal-hero" ${bg?`style="background-image:linear-gradient(90deg,#101520 15%,rgba(16,21,32,.86),rgba(16,21,32,.35)),url('${bg}')"`:''}><div class="modal-head"><img src="${posterUrl(item.poster_path)}" alt="${esc(item.name)} poster"><div><div class="eyebrow">TV series</div><h2>${esc(item.name)}</h2><div class="meta">${yearFrom(item.first_air_date)} · ${esc(certificationTv(item))} · ${(item.genres||[]).map(g=>esc(g.name)).join(' · ')}</div><p>${esc(item.overview||'No overview available.')}</p><p><strong>Cast:</strong> ${cast.length?esc(cast.join(', ')):'Not available'}</p></div></div></div><div class="modal-content"><div class="info-grid"><div class="info-box"><small>Regular seasons</small>${regularSeasons(item).length}</div><div class="info-box"><small>Created by</small>${creators.length?esc(creators.join(', ')):'Not available'}</div><div class="info-box"><small>Directors</small>${directors.length?esc(directors.slice(0,8).join(', ')):'Varies by episode'}</div></div>${providerSection(providers)}<div class="actions"><button class="btn ${showProgress(id)?'success':''}" onclick="toggleTrackShow(${id},true)">${showProgress(id)?'Stop tracking':'Track show'}</button></div><h3>Episodes</h3>${episodeHtml||'<div class="empty">No regular-season episode data is available.</div>'}</div>`;
+      body.innerHTML=`<div class="modal-hero" ${bg?`style="background-image:linear-gradient(90deg,#11151A 15%,rgba(17,21,26,.88),rgba(17,21,26,.38)),url('${bg}')"`:''}><div class="modal-head"><img src="${posterUrl(item.poster_path)}" alt="${esc(item.name)} poster"><div><div class="eyebrow">TV series</div><h2>${esc(item.name)}</h2><div class="meta">${yearFrom(item.first_air_date)} · ${esc(certificationTv(item))} · ${(item.genres||[]).map(g=>esc(g.name)).join(' · ')}</div><p>${esc(item.overview||'No overview available.')}</p><p><strong>Cast:</strong> ${cast.length?esc(cast.join(', ')):'Not available'}</p></div></div></div><div class="modal-content"><div class="info-grid"><div class="info-box"><small>Regular seasons</small>${regularSeasons(item).length}</div><div class="info-box"><small>Created by</small>${creators.length?esc(creators.join(', ')):'Not available'}</div><div class="info-box"><small>Directors</small>${directors.length?esc(directors.slice(0,8).join(', ')):'Varies by episode'}</div></div>${providerSection(providers)}<div class="actions"><button class="btn ${showProgress(id)?'success':''}" onclick="toggleTrackShow(${id},true)">${showProgress(id)?'Stop tracking':'Track show'}</button></div><h3>Episodes</h3>${episodeHtml||'<div class="empty">No regular-season episode data is available.</div>'}</div>`;
     }
   }catch(e){ body.innerHTML=`<div class="modal-loading error-box">${esc(e.message)}</div>`; }
 }
@@ -869,7 +881,7 @@ function bindModals(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  nav(); bindModals();
+  nav(); bindModals(); handleImageFallbacks();
   if(document.getElementById('watchingGrid')) initHome();
   if(document.getElementById('watchedMoviesList')) initProfile();
   if(document.getElementById('resultsGrid')) initSearch();
